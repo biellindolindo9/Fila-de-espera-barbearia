@@ -1,0 +1,51 @@
+services:
+  db:
+    image: mysql:8
+    container_name: barbearia_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: barbearia
+    volumes:
+      - dados_barbearia:/var/lib/mysql
+      - ./banco/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - rede-barbearia
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot123"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ./backend
+    container_name: barbearia_backend
+    restart: on-failure
+    environment:
+      DB_HOST: db
+      DB_USER: root
+      DB_PASSWORD: root123
+      DB_NAME: barbearia
+    ports:
+      - "3004:3004"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - rede-barbearia
+
+  frontend:
+    build: ./frontend
+    container_name: barbearia_frontend
+    ports:
+      - "8084:80"
+    depends_on:
+      - backend
+    networks:
+      - rede-barbearia
+
+volumes:
+  dados_barbearia:
+
+networks:
+  rede-barbearia:
